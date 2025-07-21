@@ -17,6 +17,7 @@ class CommandHandler:
             # Basic commands
             "!hello": self.basic_commands.hello,
             "!help": self.basic_commands.help,
+            "!my": self.basic_commands.my,
             
             # Fun commands
             "!dice": self.fun_commands.dice,
