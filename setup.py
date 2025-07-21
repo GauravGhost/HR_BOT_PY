@@ -12,19 +12,40 @@ import shutil
 def print_header():
     print("=" * 60)
     print("🤖 HIGHRISE BOT SETUP SCRIPT")
+    print("   Compatible with Python 3.8 - 3.11")
     print("=" * 60)
     print()
 
 def check_python_version():
-    """Check if Python version is compatible"""
+    """Check if Python version is compatible, auto-restart with Python 3.11 if needed"""
     version = sys.version_info
+    
+    # If we're running on Python 3.12+ but 3.11 is available, restart with 3.11
+    if version.major > 3 or (version.major == 3 and version.minor > 11):
+        print(f"⚠️  Detected Python {version.major}.{version.minor}.{version.micro} (too new)")
+        print("🔄 Attempting to restart with Python 3.11...")
+        
+        try:
+            if os.name == 'nt':  # Windows
+                # Try to restart with py -3.11
+                subprocess.run(["py", "-3.11", __file__] + sys.argv[1:], check=True)
+                return "restarted"
+            else:  # macOS/Linux
+                subprocess.run(["python3.11", __file__] + sys.argv[1:], check=True)
+                return "restarted"
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            print("❌ Python 3.11 not found!")
+            print("   Please install Python 3.11 and try again.")
+            print("   Or run manually: py -3.11 setup.py")
+            return False
+    
     if version.major < 3 or (version.major == 3 and version.minor < 8):
         print("❌ Error: Python 3.8 or higher is required!")
         print(f"   Current version: {version.major}.{version.minor}.{version.micro}")
-        print("   Please upgrade Python and try again.")
+        print("   Please upgrade to Python 3.8-3.11 and try again.")
         return False
     
-    print(f"✅ Python {version.major}.{version.minor}.{version.micro} detected")
+    print(f"✅ Python {version.major}.{version.minor}.{version.micro} detected (compatible)")
     return True
 
 def create_virtual_environment():
@@ -35,13 +56,29 @@ def create_virtual_environment():
         print(f"✅ Virtual environment already exists at {venv_path}")
         return True
     
-    print("📦 Creating virtual environment...")
+    print("📦 Creating virtual environment with Python 3.11...")
     try:
-        subprocess.run([sys.executable, "-m", "venv", venv_path], check=True)
+        # Try using py launcher for Python 3.11 on Windows
+        if os.name == 'nt':
+            subprocess.run(["py", "-3.11", "-m", "venv", venv_path], check=True)
+        else:
+            # For macOS/Linux, try python3.11 first, fallback to python3
+            try:
+                subprocess.run(["python3.11", "-m", "venv", venv_path], check=True)
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                subprocess.run(["python3", "-m", "venv", venv_path], check=True)
+        
         print(f"✅ Virtual environment created at {venv_path}")
         return True
     except subprocess.CalledProcessError:
         print("❌ Failed to create virtual environment")
+        print("   Make sure Python 3.11 is installed and try running manually:")
+        print("   py -3.11 -m venv .venv")
+        return False
+    except FileNotFoundError:
+        print("❌ Python 3.11 not found!")
+        print("   Please install Python 3.11 or run manually:")
+        print("   py -3.11 -m venv .venv")
         return False
 
 def install_requirements():
@@ -99,16 +136,19 @@ def show_next_steps():
     print()
     print("2. 🏃 Run your bot:")
     if os.name == 'nt':  # Windows
-        print("   .venv\\Scripts\\python.exe bot.py")
+        print("   For Windows: .\\run.bat")
     else:  # macOS/Linux
-        print("   .venv/bin/python bot.py")
+        print("   For macOS/Linux: ./run.sh")
     print()
 
 def main():
     print_header()
     
     # Check Python version
-    if not check_python_version():
+    version_check = check_python_version()
+    if version_check == "restarted":
+        return 0
+    elif not version_check:
         return 1
     
     # Create virtual environment
