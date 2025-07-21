@@ -9,6 +9,6 @@ python setup.py
 
 echo.
 echo Don't forget to edit your .env file with your bot credentials!
-echo After editing .env, run: ./run.sh
+echo After editing .env, run: .\run.bat
 echo.
 pause
